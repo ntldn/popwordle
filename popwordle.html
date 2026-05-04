@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PopWordle – 90s & Beyond Music Edition</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Base ─── */
+    body {
+      background: #07071a;
+      color: #fff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      user-select: none;
+      overflow-x: hidden;
+    }
+
+    /* ─── Background orbs ─── */
+    #bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+    }
+    .orb-1 {
+      width: 560px; height: 560px;
+      top: -180px; left: -160px;
+      background: radial-gradient(circle, #7c3aed55 0%, transparent 70%);
+      animation: orb1 18s ease-in-out infinite alternate;
+    }
+    .orb-2 {
+      width: 480px; height: 480px;
+      bottom: -140px; right: -120px;
+      background: radial-gradient(circle, #c026d355 0%, transparent 70%);
+      animation: orb2 22s ease-in-out infinite alternate;
+    }
+    .orb-3 {
+      width: 420px; height: 420px;
+      top: 35%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, #0891b233 0%, transparent 70%);
+      animation: orb3 14s ease-in-out infinite alternate;
+    }
+    @keyframes orb1 { to { transform: translate(80px, 60px) scale(1.15); } }
+    @keyframes orb2 { to { transform: translate(-70px, -50px) scale(1.2); } }
+    @keyframes orb3 { to { transform: translate(-50%, -60%) scale(1.3); } }
+
+    /* ─── Floating music notes ─── */
+    #note-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .float-note {
+      position: absolute;
+      bottom: -10%;
+      color: #fff;
+      animation: note-rise linear infinite;
+      will-change: transform, opacity;
+    }
+    @keyframes note-rise {
+      0%   { transform: translateY(0)    rotate(0deg);   opacity: 0; }
+      8%   { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(-110vh) rotate(25deg); opacity: 0; }
+    }
+
+    /* ─── All game content sits above bg ─── */
+    header, #category-bar, #hint-strip, #grid, #keyboard {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ─── Header ─── */
+    header {
+      width: 100%;
+      max-width: 520px;
+      padding: 18px 16px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    /* gradient separator line */
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #a855f766, #ff6bb366, #a855f766, transparent);
+    }
+
+    /* ─── Logo ─── */
+    #logo-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      gap: 2px;
+    }
+    .logo-icon {
+      font-size: 1.6rem;
+      display: block;
+      animation: icon-bounce 2.4s ease-in-out infinite;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+    @keyframes icon-bounce {
+      0%, 100% { transform: translateY(0)   rotate(-8deg); }
+      45%      { transform: translateY(-9px) rotate(10deg); }
+    }
+    .logo-glow {
+      animation: logo-glow-pulse 3s ease-in-out infinite alternate;
+    }
+    @keyframes logo-glow-pulse {
+      from { filter: drop-shadow(0 0 8px rgba(168,85,247,.55)); }
+      to   { filter: drop-shadow(0 0 24px rgba(168,85,247,.9))
+                     drop-shadow(0 0 48px rgba(255,107,179,.35)); }
+    }
+    h1 {
+      font-size: clamp(2rem, 8.5vw, 3.4rem);
+      font-weight: 900;
+      letter-spacing: clamp(3px, 1.2vw, 7px);
+      line-height: 1;
+      background: linear-gradient(90deg, #ff6bb3, #c084fc, #67e8f9, #ff6bb3);
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: logo-sweep 4s linear infinite;
+    }
+    @keyframes logo-sweep {
+      from { background-position: 0% 50%; }
+      to   { background-position: 300% 50%; }
+    }
+    .tagline {
+      font-size: clamp(0.58rem, 1.8vw, 0.72rem);
+      letter-spacing: clamp(1px, 0.6vw, 3px);
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #777, #bbb, #777);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: tagline-shimmer 5s linear infinite;
+    }
+    @keyframes tagline-shimmer {
+      from { background-position: 100% 0; }
+      to   { background-position: -100% 0; }
+    }
+
+    /* ─── Header buttons ─── */
+    .header-btns { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+    .icon-btn {
+      background: linear-gradient(135deg, #1a1a2e, #0f0f1e);
+      border: 1px solid #3a3a55;
+      color: #aaa;
+      border-radius: 50%;
+      width: 36px; height: 36px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .2s, color .2s, box-shadow .2s, opacity .2s;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .icon-btn:hover {
+      border-color: #a855f7;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(168,85,247,.4);
+    }
+    .icon-btn:disabled { opacity: .35; cursor: default; box-shadow: none; }
+
+    #hint-btn { font-size: 1.15rem; }
+    #hint-btn.used {
+      border-color: #a855f755;
+      color: #a855f7;
+      box-shadow: 0 0 8px rgba(168,85,247,.3);
+    }
+    #hint-btn .badge {
+      position: absolute;
+      top: -4px; right: -4px;
+      background: #a855f7;
+      color: #fff;
+      font-size: 0.5rem;
+      font-weight: 800;
+      border-radius: 50%;
+      width: 14px; height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    #hint-btn.used .badge { opacity: 1; }
+
+    /* ─── Category bar ─── */
+    #category-bar {
+      margin-top: 12px;
+      font-size: 0.72rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #666;
+    }
+    #category-bar span { color: #c084fc; font-weight: 700; }
+
+    /* ─── Hint strip ─── */
+    #hint-strip {
+      max-width: 460px;
+      width: calc(100% - 32px);
+      overflow: hidden;
+      max-height: 0;
+      margin: 0;
+      transition: max-height .45s cubic-bezier(.16,1,.3,1), margin .45s ease;
+      position: relative;
+      z-index: 1;
+    }
+    #hint-strip.visible { max-height: 120px; margin: 10px 0 0; }
+
+    #hint-strip-inner {
+      padding: 11px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1a0d35, #0e1630);
+      border: 1px solid transparent;
+      background-clip: padding-box;
+      position: relative;
+    }
+    /* animated gradient border */
+    #hint-strip-inner::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, #a855f7, #ff6bb3, #06b6d4, #a855f7);
+      background-size: 300% 300%;
+      animation: border-spin 4s linear infinite;
+      z-index: -1;
+    }
+    @keyframes border-spin {
+      0%   { background-position: 0% 50%; }
+      100% { background-position: 300% 50%; }
+    }
+    .hint-bulb { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+    .hint-label {
+      font-size: 0.62rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #7c3aed;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .hint-text { font-size: 0.82rem; color: #c4b5fd; line-height: 1.5; }
+
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed;
+      top: 88px; left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      color: #111;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      opacity: 0;
+      transition: opacity .25s;
+      pointer-events: none;
+      z-index: 300;
+      white-space: nowrap;
+      box-shadow: 0 4px 24px rgba(0,0,0,.4);
+    }
+    #toast.show { opacity: 1; }
+
+    /* ─── Grid ─── */
+    #grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 16px 0;
+    }
+    .row { display: flex; gap: 6px; }
+
+    /* ─── Tiles ─── */
+    .tile {
+      width: 60px; height: 60px;
+      border: 2px solid #252538;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      border-radius: 6px;
+      background: #0d0d1f;
+      transition: border-color .12s;
+    }
+    .tile[data-letter] { border-color: #4a4a6a; }
+
+    @keyframes tile-pop {
+      0%, 100% { transform: scale(1); }
+      45%      { transform: scale(1.15); }
+    }
+    .tile.popping { animation: tile-pop .12s ease; }
+
+    @keyframes flip-in  { from { transform: rotateX(0);     } to { transform: rotateX(-90deg); } }
+    @keyframes flip-out { from { transform: rotateX(-90deg); } to { transform: rotateX(0);     } }
+    .tile.flip-in  { animation: flip-in  .26s ease forwards; }
+    .tile.flip-out { animation: flip-out .26s ease forwards; }
+
+    .tile.correct {
+      background: #16a34a;
+      border-color: #22c55e;
+      color: #fff;
+      box-shadow: 0 0 18px rgba(34,197,94,.6), 0 0 40px rgba(34,197,94,.25);
+    }
+    .tile.present {
+      background: #a16207;
+      border-color: #eab308;
+      color: #fff;
+      box-shadow: 0 0 18px rgba(234,179,8,.55), 0 0 40px rgba(234,179,8,.2);
+    }
+    .tile.absent {
+      background: #1e1e30;
+      border-color: #1e1e30;
+      color: #555;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-9px); }
+      40%     { transform: translateX(9px); }
+      60%     { transform: translateX(-6px); }
+      80%     { transform: translateX(6px); }
+    }
+    .row.shake { animation: shake .48s ease; }
+
+    @keyframes win-bounce {
+      0%, 100% { transform: translateY(0); }
+      35%      { transform: translateY(-26px); }
+      65%      { transform: translateY(-12px); }
+    }
+    .tile.win-bounce { animation: win-bounce .6s ease forwards; }
+
+    /* ─── Keyboard ─── */
+    #keyboard {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding: 4px 8px 28px;
+      width: 100%;
+      max-width: 500px;
+    }
+    .key-row { display: flex; justify-content: center; gap: 5px; }
+
+    .key {
+      height: 56px;
+      min-width: 41px; max-width: 41px;
+      flex: 1;
+      background: linear-gradient(180deg, #2a2a42 0%, #1e1e30 100%);
+      border: 1px solid #3a3a55;
+      border-radius: 7px;
+      color: #ccc;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background .25s, color .25s, border-color .25s,
+                  box-shadow .2s, transform .08s;
+    }
+    .key:hover {
+      border-color: #a855f7;
+      box-shadow: 0 0 10px rgba(168,85,247,.35);
+      color: #fff;
+    }
+    .key:active { transform: scale(.91); }
+    .key.wide   { min-width: 62px; max-width: 62px; font-size: 0.7rem; }
+
+    .key.correct {
+      background: linear-gradient(180deg, #22c55e, #16a34a);
+      border-color: #22c55e;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(34,197,94,.4);
+    }
+    .key.present {
+      background: linear-gradient(180deg, #eab308, #a16207);
+      border-color: #eab308;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(234,179,8,.4);
+    }
+    .key.absent {
+      background: #151520;
+      border-color: #252535;
+      color: #444;
+    }
+
+    /* ─── Confetti ─── */
+    .confetti-piece {
+      position: fixed;
+      border-radius: 3px;
+      pointer-events: none;
+      z-index: 500;
+      animation: confetti-fly .85s ease-out forwards;
+    }
+    @keyframes confetti-fly {
+      from { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+      to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))
+                         scale(0) rotate(var(--rot)); opacity: 0; }
+    }
+
+    /* ─── Modals ─── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3,3,18,.82);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+    .overlay.show { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: linear-gradient(160deg, #12122a, #0a0a1e);
+      border-radius: 20px;
+      padding: 34px 28px;
+      max-width: 360px;
+      width: 92%;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      /* gradient border */
+      box-shadow:
+        0 0 0 1px rgba(168,85,247,.4),
+        0 0 40px rgba(168,85,247,.15),
+        0 24px 80px rgba(0,0,0,.6);
+    }
+    /* animated shimmer line at top of modal */
+    .modal::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #ff6bb3, #a855f7, #06b6d4, #ff6bb3);
+      background-size: 200% 100%;
+      animation: logo-sweep 3s linear infinite;
+    }
+
+    /* spring entrance */
+    .overlay.show .modal {
+      animation: modal-spring .45s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    @keyframes modal-spring {
+      from { transform: scale(.78) translateY(20px); opacity: 0; }
+      to   { transform: scale(1)   translateY(0);    opacity: 1; }
+    }
+
+    .modal .big-emoji {
+      font-size: 3.2rem;
+      display: block;
+      margin-bottom: 10px;
+      animation: icon-bounce 2s ease-in-out infinite;
+    }
+    .modal h2 { font-size: 1.6rem; margin-bottom: 8px; }
+    .modal p  { color: #999; line-height: 1.7; margin-bottom: 8px; font-size: .9rem; }
+
+    .answer-pill {
+      display: inline-block;
+      background: #0a0a1e;
+      border: 1px solid #3a3a55;
+      border-radius: 12px;
+      padding: 10px 28px;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 7px;
+      color: #22c55e;
+      margin: 12px 0 20px;
+      box-shadow: 0 0 20px rgba(34,197,94,.2);
+    }
+
+    .cat-pill {
+      display: inline-block;
+      background: rgba(168,85,247,.12);
+      border: 1px solid rgba(168,85,247,.3);
+      color: #c084fc;
+      border-radius: 20px;
+      padding: 3px 14px;
+      font-size: 0.72rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .cta-btn {
+      background: linear-gradient(135deg, #ff6bb3, #a855f7);
+      color: #fff;
+      border: none;
+      padding: 14px 38px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s, box-shadow .2s;
+      margin-top: 6px;
+      box-shadow: 0 0 0 0 rgba(168,85,247,.5);
+      animation: cta-pulse 2.5s ease-in-out infinite;
+    }
+    .cta-btn:hover  { opacity: .9; box-shadow: 0 0 24px rgba(168,85,247,.5); }
+    .cta-btn:active { transform: scale(.97); }
+    @keyframes cta-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(168,85,247,.4); }
+      50%       { box-shadow: 0 0 0 9px rgba(168,85,247,.0); }
+    }
+
+    /* ─── Help modal specifics ─── */
+    .help-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 7px 0;
+      text-align: left;
+    }
+    .help-swatch {
+      width: 30px; height: 30px;
+      border-radius: 5px;
+      flex-shrink: 0;
+      font-weight: 800;
+      font-size: .9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .help-swatch.c { background: #22c55e; color: #000; box-shadow: 0 0 10px rgba(34,197,94,.5); }
+    .help-swatch.p { background: #eab308; color: #000; box-shadow: 0 0 10px rgba(234,179,8,.5); }
+    .help-swatch.a { background: #1e1e30; color: #555; border: 1px solid #333; }
+    .help-divider  { border: none; border-top: 1px solid #1e1e35; margin: 16px 0; }
+  </style>
+</head>
+<body>
+
+<!-- Background -->
+<div id="bg-layer" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+<div id="note-layer" aria-hidden="true"></div>
+
+<header>
+  <div id="logo-section">
+    <span class="logo-icon">🎵</span>
+    <div class="logo-glow">
+      <h1>POPWORDLE</h1>
+    </div>
+    <p class="tagline">90s &amp; Beyond Music Edition</p>
+  </div>
+  <div class="header-btns">
+    <button class="icon-btn" id="hint-btn" title="Show a clue (once per game)">
+      💡<span class="badge">✓</span>
+    </button>
+    <button class="icon-btn" id="help-btn" title="How to play">?</button>
+    <button class="icon-btn" id="new-btn"  title="New game">↺</button>
+  </div>
+</header>
+
+<div id="category-bar">Today's word is a <span id="cat-label">…</span></div>
+
+<div id="hint-strip">
+  <div id="hint-strip-inner">
+    <span class="hint-bulb">💡</span>
+    <div>
+      <div class="hint-label">Clue</div>
+      <div class="hint-text" id="hint-text"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="grid"></div>
+<div id="keyboard"></div>
+
+<!-- ── End-game modal ── -->
+<div class="overlay" id="end-modal">
+  <div class="modal">
+    <span class="big-emoji" id="em-emoji">🎉</span>
+    <div class="cat-pill" id="em-cat"></div>
+    <h2 id="em-title">You got it!</h2>
+    <p id="em-text"></p>
+    <div class="answer-pill" id="em-answer">XXXXX</div>
+    <br>
+    <button class="cta-btn" id="play-again">Play Again 🎵</button>
+  </div>
+</div>
+
+<!-- ── Help modal ── -->
+<div class="overlay" id="help-modal">
+  <div class="modal">
+    <h2 style="margin-bottom:14px">How to Play</h2>
+    <p>Guess the 5-letter pop-music word in <strong>6 tries</strong>.<br>
+    Artists, songs, albums &amp; music terms from the 90s and beyond.</p>
+    <hr class="help-divider">
+    <div class="help-row">
+      <div class="help-swatch c">S</div>
+      <span style="color:#ccc">Right letter, <strong>right</strong> spot</span>
+    </div>
+    <div class="help-row">
+      <div class="help-swatch p">U</div>
+      <span style="color:#ccc">Right letter, <strong>wrong</strong> spot</span>
+    </div>
+    <div class="help-row">
+      <div class="help-swatch a">G</div>
+      <span style="color:#ccc">Letter not in the word</span>
+    </div>
+    <hr class="help-divider">
+    <p style="font-size:.78rem;color:#555">
+      The category is shown at the top.<br>
+      Press <strong style="color:#c084fc">💡</strong> once per game for a clue.
+    </p>
+    <br>
+    <button class="cta-btn" id="close-help">Let's Play! 🎤</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+//  Floating music notes
+// ─────────────────────────────────────────
+(function spawnNotes() {
+  const layer  = document.getElementById('note-layer');
+  const glyphs = ['♪', '♫', '♬', '♩', '🎵', '🎶', '♪', '♫'];
+  for (let i = 0; i < 12; i++) {
+    const el = document.createElement('div');
+    el.className = 'float-note';
+    el.textContent = glyphs[i % glyphs.length];
+    const size = 0.8 + Math.random() * 1.3;
+    el.style.cssText = [
+      `left:${Math.random() * 100}%`,
+      `font-size:${size}rem`,
+      `opacity:${0.03 + Math.random() * 0.055}`,
+      `animation-duration:${14 + Math.random() * 16}s`,
+      `animation-delay:${-Math.random() * 30}s`,
+    ].join(';');
+    layer.appendChild(el);
+  }
+})();
+
+// ─────────────────────────────────────────
+//  Word bank  { word, cat, hint }
+// ─────────────────────────────────────────
+const WORD_BANK = [
+  // ── Artists ──
+  { word:'ADELE', cat:'Artist',      hint:'Rolling in the Deep singer known for powerhouse breakup ballads.' },
+  { word:'BJORK', cat:'Artist',      hint:'Icelandic avant-garde icon famous for theatrical performances and swan dresses.' },
+  { word:'DRAKE', cat:'Artist',      hint:'OVO Sound Toronto rapper behind Hotline Bling and God\'s Plan.' },
+  { word:'USHER', cat:'Artist',      hint:'Confessions R&B hitmaker who got his start as a Michael Jackson protégé.' },
+  { word:'LIZZO', cat:'Artist',      hint:'Body-positive pop star who famously plays flute on stage.' },
+  { word:'LORDE', cat:'Artist',      hint:'New Zealand teenager who topped charts with Royals in 2013.' },
+  { word:'KESHA', cat:'Artist',      hint:'Tik Tok singer who stylises her name with a dollar sign.' },
+  { word:'JEWEL', cat:'Artist',      hint:'Alaskan folk singer who famously lived in her car before making it big.' },
+  { word:'BOWIE', cat:'Artist',      hint:'Ziggy Stardust alter-ego; Heroes and Space Oddity are in his catalogue.' },
+  { word:'SNOOP', cat:'Artist',      hint:'Gin and Juice rapper from Long Beach, frequent Dr. Dre collaborator.' },
+  { word:'HALSY', cat:'Artist',      hint:'Bad at Love singer with a penchant for dramatic visuals and blue hair.' },
+  { word:'KACEY', cat:'Artist',      hint:'Country crossover artist who won Album of the Year for Golden Hour.' },
+  { word:'SHAWN', cat:'Artist',      hint:'Canadian heartthrob who wrote Stitches at just 16 years old.' },
+  { word:'DAMON', cat:'Artist',      hint:'Blur frontman and co-creator of the cartoon band Gorillaz.' },
+  { word:'KYLIE', cat:'Artist',      hint:'Australian pop queen behind Can\'t Get You Out of My Head.' },
+  { word:'JANET', cat:'Artist',      hint:'Control and Rhythm Nation; younger sister of the King of Pop.' },
+  // ── Songs / Albums ──
+  { word:'VOGUE', cat:'Song',        hint:'Madonna\'s 1990 dance anthem inspired by Harlem ballroom culture.' },
+  { word:'TOXIC', cat:'Song',        hint:'Britney Spears\' 2003 spy-themed bop with a distinctive string riff.' },
+  { word:'LOVER', cat:'Song/Album',  hint:'Taylor Swift\'s pastel-hued 2019 album and its title track.' },
+  { word:'GRACE', cat:'Album',       hint:'Jeff Buckley\'s only studio album; features his iconic Hallelujah cover.' },
+  { word:'BRAVE', cat:'Song',        hint:'Sara Bareilles\' 2013 anthem encouraging people to speak up.' },
+  { word:'SORRY', cat:'Song',        hint:'Justin Bieber\'s 2015 apology pop hit from the Purpose album.' },
+  { word:'SUGAR', cat:'Song',        hint:'Maroon 5\'s sweet 2014 hit with a wedding-crashing music video.' },
+  { word:'FANCY', cat:'Song',        hint:'Iggy Azalea\'s 2014 rap hit featuring Charli XCX on the hook.' },
+  { word:'CRAZY', cat:'Song',        hint:'Gnarls Barkley\'s 2006 genre-blending smash that topped global charts.' },
+  { word:'ANGEL', cat:'Song',        hint:'Shaggy\'s 2000 smooth duet with Rayvon, sampled from a classic.' },
+  { word:'HONEY', cat:'Song',        hint:'Mariah Carey\'s hip-hop-flavoured 1997 R&B hit.' },
+  { word:'CREEP', cat:'Song',        hint:'Radiohead\'s 1992 self-loathing debut single about feeling out of place.' },
+  { word:'SLIDE', cat:'Song',        hint:'Goo Goo Dolls\' 1998 acoustic-driven MTV hit from Dizzy Up the Girl.' },
+  { word:'SMILE', cat:'Song',        hint:'Katy Perry\'s 2020 album title, also a Lily Allen fan favourite.' },
+  { word:'JUICE', cat:'Song',        hint:'Lizzo\'s self-love 2019 debut single referencing Rumors by Fleetwood Mac.' },
+  { word:'HAPPY', cat:'Song',        hint:'Pharrell Williams\' Oscar-winning 2013 earworm from Despicable Me 2.' },
+  { word:'FAITH', cat:'Song',        hint:'George Michael\'s 1987 guitar-driven solo debut hit.' },
+  { word:'LEMON', cat:'Song',        hint:'U2\'s 1993 Zooropa track featuring drum machines and falsetto vocals.' },
+  { word:'CANDY', cat:'Song',        hint:'Iggy Pop\'s mellow 1990 duet or Mandy Moore\'s bubblegum pop hit.' },
+  { word:'REBEL', cat:'Song',        hint:'Think Rebel Rebel by Bowie or countless pop-punk anthems of the 2000s.' },
+  { word:'WAVES', cat:'Song',        hint:'Mr. Probz\'s 2013 melancholic track later remixed by Robin Schulz.' },
+  { word:'YOUTH', cat:'Song',        hint:'Troye Sivan\'s emotional 2015 EP title track about young love.' },
+  { word:'CRASH', cat:'Song',        hint:'Dave Matthews Band album title, or a high-energy Usher 2022 single.' },
+  { word:'CLOWN', cat:'Song',        hint:'Emeli Sandé\'s 2012 emotional ballad from Our Version of Events.' },
+  { word:'DREAM', cat:'Song',        hint:'The Cranberries hit, or countless other pop anthems about escaping reality.' },
+  { word:'NIGHT', cat:'Song',        hint:'Think Taylor Swift\'s Midnights album or Springsteen\'s Dancing in the Night.' },
+  { word:'LIGHT', cat:'Song',        hint:'Imagine Dragons album title, or endless worship-pop crossover anthems.' },
+  { word:'SHOUT', cat:'Song',        hint:'Tears for Fears\' anthemic 1984 new-wave song urging people to let it out.' },
+  { word:'ALONE', cat:'Song',        hint:'Heart\'s soaring 1987 power ballad, later covered by many artists.' },
+  { word:'ROYAL', cat:'Song',        hint:'Lorde\'s 2013 breakout critique of hip-hop excess and luxury culture.' },
+  { word:'DRIVE', cat:'Song',        hint:'The Cars\' synth ballad or Incubus\'s moody 2000 alt-rock hit.' },
+  { word:'MONEY', cat:'Song',        hint:'Pink Floyd\'s 1973 classic that opens with a cash-register sound effect.' },
+  { word:'POWER', cat:'Song',        hint:'Kanye West\'s bombastic 2010 self-declaration sampled from King Crimson.' },
+  { word:'FLAME', cat:'Song',        hint:'Tinashe track or a word synonymous with fiery pop performance energy.' },
+  { word:'SHINE', cat:'Song',        hint:'Take That\'s comeback anthem or Collective Soul\'s 90s alt-rock hit.' },
+  { word:'DANCE', cat:'Song',        hint:'Bowie\'s Let\'s Dance, or any one of thousands of pop anthems about moving.' },
+  { word:'RADIO', cat:'Song',        hint:'Think Beyoncé\'s Renaissance, Radiohead\'s paranoid manifesto, or Jem\'s hit.' },
+  { word:'MAGIC', cat:'Song',        hint:'Coldplay\'s 2014 pop revelation from the Ghost Stories album.' },
+  { word:'DIRTY', cat:'Song',        hint:'Christina Aguilera\'s controversial 2002 image-shattering anthem.' },
+  { word:'SWEAT', cat:'Song',        hint:'Inner Circle\'s reggae-pop hit or Nelly\'s 2004 follow-up to Hot in Herre.' },
+  { word:'BILLS', cat:'Song',        hint:'LunchMoney Lewis\'s 2015 catchy ode to the struggles of adulting.' },
+  { word:'VINYL', cat:'Song/Album',  hint:'The physical music format making a massive commercial comeback.' },
+  { word:'LOSER', cat:'Song',        hint:'Beck\'s 1993 slacker anthem with the famous line "Soy un perdedor."' },
+  { word:'RIDER', cat:'Song',        hint:'Childish Gambino track, or a classic Southern rap term for a loyal partner.' },
+  { word:'KINGS', cat:'Song',        hint:'Kings of Leon band name, or a word in countless triumphant pop anthems.' },
+  { word:'SOLID', cat:'Album',       hint:'Describes a consistently strong body of work from an artist.' },
+  // ── Music terms ──
+  { word:'INDIE', cat:'Music term',  hint:'Genre of self-released or independent label music; think Arcade Fire.' },
+  { word:'AUDIO', cat:'Music term',  hint:'The medium through which all music reaches your ears.' },
+  { word:'SUPER', cat:'Music term',  hint:'Prefix used in superstar, super-group, and super-producer.' },
+  { word:'REMIX', cat:'Music term',  hint:'A reworked version of an existing track, often by a DJ or producer.' },
+  { word:'DISCO', cat:'Music term',  hint:'70s–80s dance genre that never truly died; think Donna Summer.' },
+  { word:'BLUES', cat:'Music term',  hint:'The root genre that gave birth to rock, jazz, R&B, and soul.' },
+  { word:'BEATS', cat:'Music term',  hint:'Dr. Dre\'s headphone brand, and also the rhythmic pulse of any track.' },
+  { word:'CHORD', cat:'Music term',  hint:'Three or more notes played simultaneously to create harmony.' },
+  { word:'LYRIC', cat:'Music term',  hint:'The words sung in a song; the part everyone knows after one listen.' },
+  { word:'ALBUM', cat:'Music term',  hint:'A collection of songs released as a single body of work.' },
+  { word:'TRACK', cat:'Music term',  hint:'A single song on an album, EP, or streaming playlist.' },
+  { word:'STAGE', cat:'Music term',  hint:'The platform where artists perform live in front of their fans.' },
+  { word:'TEMPO', cat:'Music term',  hint:'The speed of a piece of music, measured in beats per minute (BPM).' },
+  { word:'VIBES', cat:'Music term',  hint:'The feeling or atmosphere a song or artist gives off.' },
+  { word:'CROWD', cat:'Music term',  hint:'The audience at a live music event, hopefully singing along.' },
+  { word:'ARENA', cat:'Music term',  hint:'A large indoor venue for major touring artists; think Madison Square Garden.' },
+  { word:'CHART', cat:'Music term',  hint:'The weekly rankings of the most popular songs, like the Billboard Hot 100.' },
+  { word:'PITCH', cat:'Music term',  hint:'The highness or lowness of a musical note on the scale.' },
+  { word:'VERSE', cat:'Music term',  hint:'A recurring section of a song that carries the story, before the chorus.' },
+  { word:'STRUM', cat:'Music term',  hint:'The action of brushing across guitar strings to produce sound.' },
+  { word:'FLUTE', cat:'Music term',  hint:'The woodwind instrument Lizzo famously plays on stage mid-performance.' },
+  { word:'VIOLA', cat:'Music term',  hint:'A string instrument slightly larger and deeper in tone than a violin.' },
+  { word:'CELLO', cat:'Music term',  hint:'The deep-voiced member of the string quartet, played sitting down.' },
+  { word:'BRASS', cat:'Music term',  hint:'A family of wind instruments including trumpet, trombone, and tuba.' },
+  { word:'BANJO', cat:'Music term',  hint:'The string instrument central to folk, bluegrass, and Americana music.' },
+  { word:'PULSE', cat:'Music term',  hint:'The underlying beat of a piece of music that makes you tap your foot.' },
+  { word:'NOTES', cat:'Music term',  hint:'The fundamental units of melody; every song is built from them.' },
+  { word:'SYNTH', cat:'Music term',  hint:'Electronic keyboard instrument that defined the sound of 80s and 90s pop.' },
+  { word:'VOCAL', cat:'Music term',  hint:'Relating to the singing voice; the most expressive instrument of all.' },
+  { word:'MUSIC', cat:'Music term',  hint:'The art of organising sound into an experience that moves people.' },
+  { word:'DEBUT', cat:'Music term',  hint:'An artist\'s first album or first major public performance.' },
+  { word:'EMCEE', cat:'Music term',  hint:'The formal title for a rapper or MC — Master of Ceremonies.' },
+  { word:'RIFFS', cat:'Music term',  hint:'Short repeated guitar or instrumental phrases that hook you in.' },
+  { word:'MIXES', cat:'Music term',  hint:'Alternate versions of a track with different levels and arrangements.' },
+  { word:'TUNES', cat:'Music term',  hint:'Informal term for songs; what you load up on a long road trip.' },
+  { word:'PIANO', cat:'Music term',  hint:'The 88-key instrument behind countless pop ballads and jazz standards.' },
+  { word:'GENRE', cat:'Music term',  hint:'A category of music with shared style — pop, rock, R&B, rap, EDM…' },
+  { word:'BLARE', cat:'Music term',  hint:'The loud, harsh sound of music turned up past a comfortable volume.' },
+];
+
+const ANSWERS = WORD_BANK.filter(e => e.word.length === 5);
+
+// ─────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────
+const ROWS = 6, COLS = 5;
+let target, targetCat, targetHint, board, currentRow, currentCol, currentGuess, gameOver, keyStates, hintUsed;
+
+function pickRandom() { return ANSWERS[Math.floor(Math.random() * ANSWERS.length)]; }
+
+function init() {
+  const entry  = pickRandom();
+  target       = entry.word;
+  targetCat    = entry.cat;
+  targetHint   = entry.hint;
+  currentRow   = 0;
+  currentCol   = 0;
+  currentGuess = [];
+  gameOver     = false;
+  keyStates    = {};
+  hintUsed     = false;
+
+  document.getElementById('cat-label').textContent = targetCat;
+  document.getElementById('end-modal').classList.remove('show');
+
+  const hintBtn = document.getElementById('hint-btn');
+  hintBtn.classList.remove('used');
+  hintBtn.disabled = false;
+  document.getElementById('hint-strip').classList.remove('visible');
+
+  buildGrid();
+  buildKeyboard();
+}
+
+// ─────────────────────────────────────────
+//  Grid
+// ─────────────────────────────────────────
+function buildGrid() {
+  const gridEl = document.getElementById('grid');
+  gridEl.innerHTML = '';
+  board = [];
+  for (let r = 0; r < ROWS; r++) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'row';
+    rowEl.id = `row-${r}`;
+    const rowTiles = [];
+    for (let c = 0; c < COLS; c++) {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.id = `tile-${r}-${c}`;
+      rowEl.appendChild(tile);
+      rowTiles.push(tile);
+    }
+    gridEl.appendChild(rowEl);
+    board.push(rowTiles);
+  }
+}
+
+// ─────────────────────────────────────────
+//  Keyboard
+// ─────────────────────────────────────────
+const KB_ROWS = [
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['ENTER','Z','X','C','V','B','N','M','⌫'],
+];
+
+function buildKeyboard() {
+  const kbEl = document.getElementById('keyboard');
+  kbEl.innerHTML = '';
+  KB_ROWS.forEach(keys => {
+    const row = document.createElement('div');
+    row.className = 'key-row';
+    keys.forEach(k => {
+      const btn = document.createElement('button');
+      btn.className = 'key' + (k.length > 1 ? ' wide' : '');
+      btn.textContent = k;
+      btn.dataset.key = k;
+      btn.addEventListener('click', () => handleKey(k));
+      row.appendChild(btn);
+    });
+    kbEl.appendChild(row);
+  });
+}
+
+function setKeyState(letter, state) {
+  const priority = { correct: 3, present: 2, absent: 1, unused: 0 };
+  const cur = keyStates[letter] || 'unused';
+  if ((priority[state] || 0) <= (priority[cur] || 0)) return;
+  keyStates[letter] = state;
+  const btn = document.querySelector(`[data-key="${letter}"]`);
+  if (btn) {
+    btn.classList.remove('correct','present','absent');
+    if (state !== 'unused') btn.classList.add(state);
+  }
+}
+
+// ─────────────────────────────────────────
+//  Input
+// ─────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toUpperCase();
+  if (k === 'BACKSPACE') handleKey('⌫');
+  else if (k === 'ENTER') handleKey('ENTER');
+  else if (/^[A-Z]$/.test(k)) handleKey(k);
+});
+
+function handleKey(key) {
+  if (gameOver) return;
+  if (key === '⌫') deleteLetter();
+  else if (key === 'ENTER') submitGuess();
+  else if (/^[A-Z]$/.test(key)) addLetter(key);
+}
+
+function addLetter(letter) {
+  if (currentCol >= COLS) return;
+  const tile = board[currentRow][currentCol];
+  tile.textContent = letter;
+  tile.dataset.letter = letter;
+  tile.classList.remove('popping');
+  void tile.offsetWidth;
+  tile.classList.add('popping');
+  currentGuess.push(letter);
+  currentCol++;
+}
+
+function deleteLetter() {
+  if (currentCol <= 0) return;
+  currentCol--;
+  currentGuess.pop();
+  const tile = board[currentRow][currentCol];
+  tile.textContent = '';
+  delete tile.dataset.letter;
+}
+
+// ─────────────────────────────────────────
+//  Evaluation
+// ─────────────────────────────────────────
+function submitGuess() {
+  if (currentCol < COLS) { showToast('Not enough letters'); shakeRow(currentRow); return; }
+  const guess  = currentGuess.join('');
+  const result = evaluate(guess, target);
+  revealRow(currentRow, guess, result);
+}
+
+function evaluate(guess, target) {
+  const result = Array(COLS).fill('absent');
+  const tUsed  = Array(COLS).fill(false);
+  const gUsed  = Array(COLS).fill(false);
+  for (let i = 0; i < COLS; i++) {
+    if (guess[i] === target[i]) { result[i] = 'correct'; tUsed[i] = gUsed[i] = true; }
+  }
+  for (let i = 0; i < COLS; i++) {
+    if (gUsed[i]) continue;
+    for (let j = 0; j < COLS; j++) {
+      if (!tUsed[j] && guess[i] === target[j]) { result[i] = 'present'; tUsed[j] = true; break; }
+    }
+  }
+  return result;
+}
+
+function revealRow(rowIdx, guess, result) {
+  const DELAY  = 90;
+  result.forEach((state, i) => {
+    const tile = board[rowIdx][i];
+    setTimeout(() => {
+      tile.classList.add('flip-in');
+      setTimeout(() => {
+        tile.classList.remove('flip-in');
+        tile.classList.add(state, 'flip-out');
+        setKeyState(guess[i], state);
+        setTimeout(() => tile.classList.remove('flip-out'), 260);
+      }, 260);
+    }, i * DELAY);
+  });
+
+  const animDone = COLS * DELAY + 540;
+  const won      = result.every(r => r === 'correct');
+  const winRow   = rowIdx;
+
+  setTimeout(() => {
+    if (won) {
+      gameOver = true;
+      bounceRow(winRow);
+      setTimeout(() => { launchConfetti(); openEndModal(true, winRow); }, 650);
+    } else {
+      currentRow++;
+      currentCol   = 0;
+      currentGuess = [];
+      if (currentRow >= ROWS) { gameOver = true; setTimeout(() => openEndModal(false, ROWS), 300); }
+    }
+  }, animDone);
+}
+
+// ─────────────────────────────────────────
+//  Animations
+// ─────────────────────────────────────────
+function shakeRow(rowIdx) {
+  const row = document.getElementById(`row-${rowIdx}`);
+  row.classList.add('shake');
+  row.addEventListener('animationend', () => row.classList.remove('shake'), { once: true });
+}
+
+function bounceRow(rowIdx) {
+  board[rowIdx].forEach((tile, i) =>
+    setTimeout(() => tile.classList.add('win-bounce'), i * 80)
+  );
+}
+
+function launchConfetti() {
+  const colors = ['#ff6bb3','#a855f7','#06b6d4','#22c55e','#eab308','#f97316','#ec4899'];
+  for (let i = 0; i < 70; i++) {
+    const el    = document.createElement('div');
+    el.className = 'confetti-piece';
+    const angle = Math.random() * 360;
+    const dist  = 100 + Math.random() * 240;
+    const dx    = Math.cos(angle * Math.PI / 180) * dist;
+    const dy    = Math.sin(angle * Math.PI / 180) * dist;
+    const size  = 4 + Math.random() * 9;
+    el.style.cssText = [
+      `left:50%`, `top:40%`,
+      `width:${size}px`, `height:${size}px`,
+      `background:${colors[Math.floor(Math.random() * colors.length)]}`,
+      `border-radius:${Math.random() > .4 ? '50%' : '2px'}`,
+      `--dx:${dx}px`, `--dy:${dy}px`,
+      `--rot:${Math.random() * 720 - 360}deg`,
+      `animation-duration:${0.6 + Math.random() * 0.5}s`,
+      `animation-delay:${Math.random() * 0.15}s`,
+    ].join(';');
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }
+}
+
+let toastTimer;
+function showToast(msg, ms = 1600) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// ─────────────────────────────────────────
+//  Hint
+// ─────────────────────────────────────────
+document.getElementById('hint-btn').addEventListener('click', () => {
+  if (hintUsed || gameOver) return;
+  hintUsed = true;
+  document.getElementById('hint-text').textContent = targetHint;
+  document.getElementById('hint-strip').classList.add('visible');
+  const btn = document.getElementById('hint-btn');
+  btn.classList.add('used');
+  btn.disabled = true;
+});
+
+// ─────────────────────────────────────────
+//  End-game modal
+// ─────────────────────────────────────────
+const WIN_MSGS = [
+  ['🤯', 'MIND = BLOWN!',   'First try — absolute legend.'],
+  ['🌟', 'FLAWLESS!',       'Two tries. Certified music genius.'],
+  ['🎤', 'CHART-TOPPER!',   'Three tries. You know your bangers.'],
+  ['🎸', 'SOLID GOLD!',     'Four tries. Respectable hitmaker energy.'],
+  ['💿', 'B-SIDE VIBES',    'Five tries. You scraped through.'],
+  ['🎶', 'SQUEAKED BY!',    'Six tries — phew! The crowd goes wild anyway.'],
+];
+
+function openEndModal(won, rowIdx) {
+  const modal = document.getElementById('end-modal');
+  if (won) {
+    const msg = WIN_MSGS[Math.min(rowIdx, WIN_MSGS.length - 1)];
+    document.getElementById('em-emoji').textContent = msg[0];
+    document.getElementById('em-title').textContent = msg[1];
+    document.getElementById('em-text').textContent  = msg[2];
+  } else {
+    document.getElementById('em-emoji').textContent = '😢';
+    document.getElementById('em-title').textContent = 'Better luck next time!';
+    document.getElementById('em-text').textContent  = 'The word was:';
+  }
+  document.getElementById('em-cat').textContent    = targetCat;
+  document.getElementById('em-answer').textContent = target;
+  modal.classList.add('show');
+}
+
+// ─────────────────────────────────────────
+//  Button listeners
+// ─────────────────────────────────────────
+document.getElementById('play-again').addEventListener('click', init);
+document.getElementById('new-btn').addEventListener('click', init);
+document.getElementById('help-btn').addEventListener('click', () =>
+  document.getElementById('help-modal').classList.add('show')
+);
+document.getElementById('close-help').addEventListener('click', () =>
+  document.getElementById('help-modal').classList.remove('show')
+);
+['end-modal','help-modal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+  });
+});
+
+// ─────────────────────────────────────────
+//  Start!
+// ─────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
